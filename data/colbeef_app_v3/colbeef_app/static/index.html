@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colbeef · Gestor de Vísceras</title>
+<style>
+:root{
+  --vp:#259c39;--vh:#40916c;--vs:#74c69d;--vc:#b7e4c7;
+  --rojo:#dc2626;--fondo:#f8faf9;--blanco:#ffffff;--gris:#6b7280;
+  --sombra:0 8px 20px rgba(37,156,57,0.08);--radio:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,system-ui,sans-serif;}
+body{background:var(--fondo);padding:2rem;min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+.container{max-width:1400px;width:100%;}
+
+/* HEADER */
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem;}
+.logo-area{display:flex;align-items:center;gap:1rem;}
+.logo-icon{font-size:2.5rem;background:var(--vp);color:white;width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:18px;box-shadow:var(--sombra);}
+.logo-text h1{font-size:1.8rem;font-weight:700;letter-spacing:-0.5px;}
+.logo-text p{color:var(--gris);font-size:0.9rem;}
+.header-right{display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;}
+.fecha-badge{background:white;padding:0.5rem 1.5rem;border-radius:40px;font-weight:500;color:var(--vp);box-shadow:var(--sombra);border:1px solid var(--vc);}
+.conn-badge{display:flex;align-items:center;gap:0.4rem;background:white;padding:0.4rem 1rem;border-radius:40px;font-size:0.78rem;font-weight:600;box-shadow:var(--sombra);border:1px solid var(--vc);}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;}
+.conn-dot.ok{background:#4ade80;}
+
+/* TARJETAS DASHBOARD */
+.resumen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;margin-bottom:2.5rem;}
+.tarjeta-resumen{background:var(--blanco);border-radius:var(--radio);padding:1.5rem;box-shadow:var(--sombra);border:1px solid rgba(116,198,157,0.2);transition:transform 0.2s;position:relative;overflow:hidden;}
+.tarjeta-resumen:hover{transform:translateY(-4px);}
+.tarjeta-resumen::before{content:'';position:absolute;top:0;left:0;width:100%;height:5px;background:linear-gradient(90deg,var(--vp),var(--vs));}
+.resumen-label{font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--gris);margin-bottom:0.5rem;}
+.resumen-valor{font-size:2.8rem;font-weight:800;color:var(--vp);line-height:1;}
+.resumen-sub{font-size:0.78rem;color:var(--gris);margin-top:0.4rem;}
+.resumen-icon{position:absolute;right:1rem;bottom:1rem;font-size:3rem;opacity:0.1;color:var(--vp);}
+
+/* TARJETA DIVIDIDA */
+.tarjeta-split{display:flex;gap:0;align-items:stretch;}
+.split-left{flex:1;padding-right:1rem;border-right:2px solid var(--vc);}
+.split-right{flex:1;padding-left:1rem;}
+.split-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--gris);margin-bottom:0.3rem;}
+.split-valor{font-size:2.2rem;font-weight:800;color:var(--vp);line-height:1;}
+.split-valor.rojo{color:#dc2626;}
+.split-sub{font-size:0.72rem;color:var(--gris);margin-top:0.3rem;}
+
+/* PROGRESO */
+.progreso-card{background:var(--blanco);border-radius:var(--radio);padding:1.8rem;box-shadow:var(--sombra);margin-bottom:2.5rem;border:1px solid rgba(116,198,157,0.2);}
+.progreso-header{display:flex;justify-content:space-between;margin-bottom:0.8rem;font-weight:600;color:var(--vp);}
+.barra-exterior{background:#e9f3ee;height:14px;border-radius:30px;overflow:hidden;}
+.barra-interior{height:100%;background:linear-gradient(90deg,var(--vp),var(--vs));border-radius:30px;transition:width 0.7s ease;}
+
+/* MÓDULOS */
+.modulos-titulo{font-size:1.3rem;font-weight:600;color:var(--vp);margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem;}
+.modulos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.8rem;margin-bottom:2rem;}
+.modulo-card{background:var(--blanco);border-radius:var(--radio);padding:1.8rem;box-shadow:var(--sombra);border:1px solid rgba(116,198,157,0.2);transition:all 0.2s;cursor:pointer;}
+.modulo-card:hover{transform:scale(1.02);border-color:var(--vh);}
+.modulo-icono{font-size:2.5rem;margin-bottom:1rem;}
+.modulo-nombre{font-size:1.4rem;font-weight:700;color:var(--vp);margin-bottom:0.5rem;}
+.modulo-desc{color:var(--gris);font-size:0.95rem;margin-bottom:1.2rem;line-height:1.4;}
+.modulo-badge{display:inline-block;background:var(--vc);color:var(--vp);padding:0.3rem 1rem;border-radius:30px;font-size:0.75rem;font-weight:600;text-transform:uppercase;}
+
+/* VISTAS DETALLE */
+.view-detail{display:none;background:var(--blanco);border-radius:var(--radio);padding:2rem;box-shadow:var(--sombra);margin-top:1rem;}
+.view-detail.active{display:block;}
+.back-btn{background:none;border:none;color:var(--vp);font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.3rem;}
+.back-btn:hover{text-decoration:underline;}
+
+/* TABS */
+.tabs-bar{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;border-bottom:2px solid var(--vc);padding-bottom:0.5rem;}
+.tab-btn{padding:0.6rem 1.4rem;border-radius:30px 30px 0 0;border:none;font-weight:600;font-size:0.9rem;cursor:pointer;transition:all 0.2s;background:var(--fondo);color:var(--gris);}
+.tab-btn.active{background:var(--vp);color:white;}
+.tab-btn:hover:not(.active){background:var(--vc);color:var(--vp);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* BOTONES */
+.btn-row{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0;align-items:center;}
+.btn{padding:0.8rem 1.8rem;border-radius:40px;border:none;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:0.95rem;}
+.btn-primary{background:var(--vp);color:white;}
+.btn-primary:hover:not(:disabled){background:#1e7a2e;transform:translateY(-2px);box-shadow:0 5px 15px rgba(37,156,57,0.3);}
+.btn-secondary{background:var(--vc);color:var(--vp);}
+.btn-secondary:hover:not(:disabled){background:#a2dbb7;}
+.btn-danger{background:#fee2e2;color:#991b1b;}
+.btn-danger:hover:not(:disabled){background:#fca5a5;}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* SELECTOR DE TURNO */
+.turno-btns{display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:1.5rem;}
+.turno-btn{display:flex;align-items:center;gap:0.35rem;padding:0.5rem 0.9rem;border-radius:30px;border:2px solid var(--vc);background:white;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.18s;}
+.turno-btn:hover{border-color:var(--vp);background:#f0faf3;}
+.turno-btn.sugerido{border-color:#80c897;background:#f0faf3;}
+.turno-btn.selected{border-color:var(--vp);background:var(--vp);color:white;}
+.t-d{font-weight:700;}
+.t-a{color:var(--gris);font-size:0.78rem;}
+.turno-btn.selected .t-a{color:rgba(255,255,255,0.65);}
+.t-c{background:rgba(37,156,57,0.12);color:var(--vp);padding:0.1rem 0.45rem;border-radius:16px;font-size:0.75rem;margin-left:0.15rem;}
+.turno-btn.selected .t-c{background:rgba(255,255,255,0.22);color:white;}
+.turno-badge{display:inline-block;background:var(--vp);color:white;padding:0.3rem 1rem;border-radius:30px;font-weight:700;font-size:0.9rem;letter-spacing:1px;margin-left:0.8rem;vertical-align:middle;}
+
+/* STATS DESPACHOS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.stat-card{background:var(--fondo);border-radius:12px;padding:1.2rem 1rem;border:1px solid rgba(116,198,157,0.25);text-align:center;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--vp),var(--vs));}
+.stat-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--gris);margin-bottom:0.3rem;}
+.stat-valor{font-size:2rem;font-weight:800;color:var(--vp);}
+.stat-sub{font-size:0.7rem;color:var(--gris);margin-top:0.2rem;}
+
+/* BUSCADOR */
+.search-desp{display:flex;align-items:center;gap:0.5rem;background:white;border:2px solid var(--vc);border-radius:40px;padding:0.45rem 1rem;transition:border-color 0.2s;flex:1;max-width:320px;}
+.search-desp:focus-within{border-color:var(--vp);}
+.search-desp input{border:none;outline:none;font-size:0.9rem;width:100%;background:transparent;}
+.search-desp .s-icon{color:var(--gris);font-size:1rem;}
+.search-desp .s-clear{background:none;border:none;cursor:pointer;color:var(--gris);font-size:1rem;display:none;}
+.search-desp .s-clear.show{display:block;}
+.search-count{font-size:0.78rem;color:var(--vp);font-weight:600;white-space:nowrap;}
+tr.hl-match td{background:#fff9c4!important;border-left:3px solid #f59e0b!important;}
+tr.hl-hidden{display:none;}
+
+/* TABLAS */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--vc);margin-top:1rem;}
+table{width:100%;border-collapse:collapse;font-size:0.88rem;}
+thead tr{background:var(--vp);color:white;}
+thead th{padding:0.8rem 1rem;text-align:left;white-space:nowrap;}
+thead th.num{text-align:center;}
+tbody tr{border-bottom:1px solid var(--vc);}
+tbody tr:nth-child(even){background:var(--fondo);}
+tbody tr.total-row{background:#e8f5e9;font-weight:700;border-top:2px solid var(--vp);}
+tbody tr.clickable:hover{background:#d4edda;cursor:pointer;}
+tbody td{padding:0.75rem 1rem;}
+tbody td.num{text-align:center;}
+td.cruda-cell{position:relative;}
+td.cruda-cell::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;border:2px solid #f59e0b;background:rgba(251,191,36,0.15);pointer-events:none;}
+td.cruda-cell span{position:relative;z-index:1;}
+.empty-state{text-align:center;padding:3rem;color:var(--gris);}
+
+/* INFORME */
+.inf-input{padding:0.7rem 1rem;border-radius:10px;border:2px solid var(--vc);font-size:0.95rem;width:100%;transition:border-color 0.2s;}
+.inf-input:focus{outline:none;border-color:var(--vp);}
+.inf-input.inv-rojo{border-color:#f97316;}
+.inf-label{font-size:0.82rem;font-weight:600;color:var(--gris);margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.5px;}
+.inf-field{margin-bottom:1rem;}
+.inf-section{background:var(--fondo);border-radius:var(--radio);padding:1.5rem;border:1px solid rgba(116,198,157,0.2);margin-bottom:1.5rem;}
+.inf-section-title{font-size:1rem;font-weight:700;color:var(--vp);margin-bottom:1.2rem;display:flex;align-items:center;gap:0.5rem;}
+.novedad-chip{display:flex;justify-content:space-between;align-items:center;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:0.6rem 1rem;margin-bottom:0.5rem;gap:0.5rem;}
+.novedad-chip span{font-size:0.9rem;color:#1a1a2e;flex:1;}
+.novedad-del{background:none;border:none;color:#dc2626;cursor:pointer;font-size:1.1rem;padding:0.2rem 0.4rem;border-radius:6px;}
+.add-nov-row{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;}
+.add-nov-row .inf-input{flex:1;min-width:120px;}
+.beneficio-wrap{text-align:center;margin-bottom:1.5rem;}
+.beneficio-input{width:160px;padding:0.8rem;font-size:1.4rem;font-weight:700;border:3px solid var(--vp);border-radius:12px;background:#e8f5e8;text-align:center;display:inline-block;}
+.beneficio-input:focus{outline:none;border-color:var(--vh);}
+.incluir-bar{background:#f0faf3;border:2px solid var(--vc);border-radius:12px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;}
+.check-label{display:flex;align-items:center;gap:0.4rem;font-size:0.9rem;font-weight:600;cursor:pointer;}
+.check-label input{width:16px;height:16px;accent-color:var(--vp);}
+
+/* TABLA CAVAS */
+.cava-table{width:100%;border-collapse:collapse;font-size:0.88rem;}
+.cava-table thead tr{background:var(--vp);color:white;}
+.cava-table th{padding:0.7rem 0.8rem;text-align:center;white-space:nowrap;}
+.cava-table th:first-child{text-align:left;}
+.cava-table td{padding:0.6rem 0.8rem;border-bottom:1px solid var(--vc);text-align:center;}
+.cava-table td:first-child{text-align:left;font-weight:600;color:var(--vp);}
+.cava-table tr:nth-child(even){background:var(--fondo);}
+.cava-table tr.total-cava{background:#e8f5e9;font-weight:700;border-top:2px solid var(--vp);}
+.cava-num-input{width:70px;padding:0.4rem;border:2px solid var(--vc);border-radius:8px;text-align:center;font-size:0.9rem;}
+.cava-num-input:focus{outline:none;border-color:var(--vp);}
+.pct-chip{display:inline-block;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.82rem;font-weight:700;}
+
+/* PERCHEROS */
+.perc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.perc-stat{background:white;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--vc);position:relative;overflow:hidden;}
+.perc-stat::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;}
+.perc-stat.azul::before{background:#3b82f6;}
+.perc-stat.rojo::before{background:#ef4444;}
+.perc-stat.naranja::before{background:#f97316;}
+.perc-stat.verde::before{background:var(--vp);}
+.perc-stat-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--gris);margin-bottom:0.4rem;}
+.perc-stat-val{font-size:1.8rem;font-weight:800;}
+.perc-stat-val.azul{color:#3b82f6;}
+.perc-stat-val.rojo{color:#ef4444;}
+.perc-stat-val.naranja{color:#f97316;}
+.perc-stat-val.verde{color:var(--vp);}
+.perc-table{width:100%;border-collapse:collapse;font-size:0.86rem;}
+.perc-table thead tr{background:#374151;color:white;}
+.perc-table th{padding:0.7rem 0.8rem;text-align:center;}
+.perc-table th:first-child{text-align:left;}
+.perc-table td{padding:0.6rem 0.8rem;border-bottom:1px solid var(--vc);text-align:center;}
+.perc-table td:first-child{text-align:left;font-weight:600;}
+.perc-table tr:nth-child(even){background:var(--fondo);}
+.perc-num-input{width:60px;padding:0.35rem;border:1px solid #d1d5db;border-radius:6px;text-align:center;font-size:0.88rem;}
+
+/* ALERTAS */
+.alert{padding:1rem 1.2rem;border-radius:12px;margin:1rem 0;display:none;font-size:0.9rem;}
+.alert.show{display:block;}
+.alert-success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;}
+.alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.alert-warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:2000;padding:1rem;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:white;border-radius:var(--radio);padding:2rem;max-width:720px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,0.22);}
+.modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.2rem;}
+.modal-title{font-size:0.95rem;font-weight:700;color:var(--vp);flex:1;word-break:break-word;}
+.modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gris);}
+
+/* SPINNER */
+.spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);display:none;align-items:center;justify-content:center;z-index:1000;}
+.spinner-overlay.show{display:flex;}
+.spinner-box{background:white;padding:2rem 3rem;border-radius:var(--radio);text-align:center;box-shadow:var(--sombra);}
+.spinner{width:40px;height:40px;border:4px solid var(--vc);border-top-color:var(--vp);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:700px){
+  body{padding:1rem;}
+  .header{flex-direction:column;align-items:start;}
+  .resumen-valor{font-size:2.2rem;}
+  .turno-btn{font-size:0.75rem;padding:0.45rem 0.7rem;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- SPINNER -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner-box">
+    <div class="spinner"></div>
+    <div id="spinnerMsg" style="color:var(--gris);font-size:0.95rem;">Consultando base de datos...</div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PUESTO -->
+<div class="modal-overlay" id="modalPuesto">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalPuestoTitulo"></div>
+      <button class="modal-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div id="modalPuestoContenido"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-area">
+    <div class="logo-icon">🥩</div>
+    <div class="logo-text">
+      <h1><span style="color:var(--vp)">Col</span><span style="color:var(--rojo)">beef</span> · Gestor de Vísceras</h1>
+      <p>Control de inventario y despachos</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="conn-badge">
+      <div class="conn-dot" id="connDot"></div>
+      <span id="connTxt">Verificando...</span>
+    </div>
+    <div class="fecha-badge" id="fechaActual"></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="viewDashboard">
+  <div class="resumen-grid">
+    <div class="tarjeta-resumen">
+      <div class="tarjeta-split">
+        <div class="split-left">
+          <div class="split-label">📦 Juegos en Cava</div>
+          <div class="split-valor" id="dashJuegos">—</div>
+          <div class="split-sub">Códigos base únicos</div>
+        </div>
+        <div class="split-right">
+          <div class="split-label">🏷️ Decomisos</div>
+          <div class="split-valor rojo" id="dashDecomisos">—</div>
+          <div class="split-sub">Registros hoy</div>
+          <div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid rgba(116,198,157,0.25);">
+            <div class="split-label" style="font-size:0.7rem;color:#d97706;">🟡 Crudas</div>
+            <div class="split-valor" id="dashCrudas" style="font-size:1.4rem;color:#d97706;">—</div>
+            <div class="split-sub">VB con cruda</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tarjeta-resumen">
+      <div class="resumen-label">📊 Partes en Cava</div>
+      <div class="resumen-valor" id="dashPartes">—</div>
+      <div class="resumen-sub">Productos registrados hoy</div>
+      <div class="resumen-icon">📦</div>
+    </div>
+    <div class="tarjeta-resumen">
+      <div class="resumen-label">🚛 Despachos procesados</div>
+      <div class="resumen-valor" id="dashDespachos">—</div>
+      <div class="resumen-sub" id="dashDespTurno">Turno activo</div>
+      <div class="resumen-icon">🚛</div>
+    </div>
+    <div class="tarjeta-resumen">
+      <div class="resumen-label">🕐 Última actualización</div>
+      <div class="resumen-valor" id="dashUltimaHora" style="font-size:1.8rem;">—</div>
+      <div class="resumen-sub" id="dashUltimaFecha"></div>
+      <div class="resumen-icon">🕐</div>
+    </div>
+  </div>
+
+  <div class="progreso-card">
+    <div class="progreso-header">
+      <span>Distribución de productos en cava</span>
+      <span id="progresoPorcentaje">0%</span>
+    </div>
+    <div class="barra-exterior"><div class="barra-interior" id="progresoBarra" style="width:0%"></div></div>
+    <p style="margin-top:0.9rem;color:#4b6358;font-size:0.9rem;" id="progresoMeta">
+      <button class="btn btn-primary" style="padding:0.5rem 1.4rem;font-size:0.85rem;" onclick="cargarDashboard()">🔄 Actualizar datos</button>
+      <input type="date" id="dashFecha" style="margin-left:0.8rem;padding:0.45rem 0.8rem;border:2px solid var(--vc);border-radius:10px;font-size:0.85rem;">
+    </p>
+  </div>
+
+  <div class="modulos-titulo">⚙️ Módulos de gestión</div>
+  <div class="modulos-grid">
+    <div class="modulo-card" onclick="showDecomisos()">
+      <div class="modulo-icono">📋</div>
+      <div class="modulo-nombre">Decomisos</div>
+      <div class="modulo-desc">Consulta directa a la BD, cruce de información y generación de reportes PDF.</div>
+      <span class="modulo-badge">Activo</span>
+    </div>
+    <div class="modulo-card" onclick="showDespachos()">
+      <div class="modulo-icono">🚛</div>
+      <div class="modulo-nombre">Despachos</div>
+      <div class="modulo-desc">Tabla dinámica por puesto: VR / VB / Cabeza / PM / Juegos / Crudas por turno.</div>
+      <span class="modulo-badge">Activo</span>
+    </div>
+    <div class="modulo-card" onclick="showInforme()">
+      <div class="modulo-icono">📊</div>
+      <div class="modulo-nombre">Informe Laboral</div>
+      <div class="modulo-desc">Inventario frío, ocupación de cavas y carros percheros. Genera informe PDF.</div>
+      <span class="modulo-badge">Activo</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DECOMISOS ═══ -->
+<div id="viewDecomisos" class="view-detail">
+  <button class="back-btn" onclick="showDashboard()">← Volver al Dashboard</button>
+  <h2 style="color:var(--vp);margin-bottom:1rem;">Módulo de Decomisos</h2>
+  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
+    <label style="font-size:0.85rem;font-weight:600;color:var(--gris);">Fecha:</label>
+    <input type="date" id="decFecha" style="padding:0.5rem 0.9rem;border:2px solid var(--vc);border-radius:10px;font-size:0.9rem;">
+    <button class="btn btn-primary" onclick="cargarDecomisos()">🔄 Consultar Base de Datos</button>
+    <button class="btn btn-secondary" id="btnDecPDF" onclick="pdfDecomisos()" disabled>📄 Generar PDF</button>
+  </div>
+  <div class="alert" id="decAlert"></div>
+  <div id="decMetrics" style="display:none;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.5rem;"></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Código Producto</th><th>Producto</th>
+        <th>Puesto / Etiqueta</th><th>Causa / Enfermedad</th>
+        <th class="num">Peso (kg)</th><th>Hora</th><th>Responsable</th>
+      </tr></thead>
+      <tbody id="tablaDecomisos">
+        <tr><td colspan="8" class="empty-state">Selecciona una fecha y presiona "Consultar Base de Datos".</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ DESPACHOS ═══ -->
+<div id="viewDespachos" class="view-detail">
+  <button class="back-btn" onclick="showDashboard()">← Volver al Dashboard</button>
+  <h2 style="color:var(--vp);margin-bottom:0.4rem;">
+    Módulo de Despachos
+    <span class="turno-badge" id="despTurnoBadge">—</span>
+  </h2>
+  <p style="color:var(--gris);font-size:0.84rem;margin-bottom:1.4rem;">
+    Selecciona el turno y la fecha. Haz doble clic en una fila para ver el detalle del puesto.
+  </p>
+  <div style="margin-bottom:1.5rem;">
+    <p style="font-size:0.85rem;color:var(--gris);margin-bottom:0.8rem;">
+      <strong style="color:var(--vp);">Selecciona el turno</strong> — el marcado con "hoy" es el sugerido.
+    </p>
+    <div class="turno-btns" id="turnoBtns">
+      <button class="turno-btn" data-turno="DxL" onclick="selTurno('DxL',this)"><span class="t-d">Dom</span><span class="t-a">→</span><span class="t-d">Lun</span><span class="t-c">DxL</span></button>
+      <button class="turno-btn" data-turno="LxM" onclick="selTurno('LxM',this)"><span class="t-d">Lun</span><span class="t-a">→</span><span class="t-d">Mar</span><span class="t-c">LxM</span></button>
+      <button class="turno-btn" data-turno="MxM" onclick="selTurno('MxM',this)"><span class="t-d">Mar</span><span class="t-a">→</span><span class="t-d">Mié</span><span class="t-c">MxM</span></button>
+      <button class="turno-btn" data-turno="MxJ" onclick="selTurno('MxJ',this)"><span class="t-d">Mié</span><span class="t-a">→</span><span class="t-d">Jue</span><span class="t-c">MxJ</span></button>
+      <button class="turno-btn" data-turno="JxV" onclick="selTurno('JxV',this)"><span class="t-d">Jue</span><span class="t-a">→</span><span class="t-d">Vie</span><span class="t-c">JxV</span></button>
+      <button class="turno-btn" data-turno="VxS" onclick="selTurno('VxS',this)"><span class="t-d">Vie</span><span class="t-a">→</span><span class="t-d">Sáb</span><span class="t-c">VxS</span></button>
+      <button class="turno-btn" data-turno="SxD" onclick="selTurno('SxD',this)"><span class="t-d">Sáb</span><span class="t-a">→</span><span class="t-d">Dom</span><span class="t-c">SxD</span></button>
+    </div>
+  </div>
+  <div class="stats-grid" id="despStats" style="display:none;">
+    <div class="stat-card"><div class="stat-label">Total Juegos</div><div class="stat-valor" id="statJuegos">—</div><div class="stat-sub">del turno</div></div>
+    <div class="stat-card"><div class="stat-label">V. Rojas</div><div class="stat-valor" style="color:#dc2626;" id="statVR">—</div></div>
+    <div class="stat-card"><div class="stat-label">V. Blancas</div><div class="stat-valor" style="color:#2563eb;" id="statVB">—</div></div>
+    <div class="stat-card"><div class="stat-label">Cabezas</div><div class="stat-valor" id="statCab">—</div></div>
+    <div class="stat-card"><div class="stat-label">Patas y Manos</div><div class="stat-valor" id="statPM">—</div></div>
+    <div class="stat-card"><div class="stat-label">Crudas</div><div class="stat-valor" style="color:#d97706;" id="statCrudas">—</div></div>
+    <div class="stat-card"><div class="stat-label">Puestos</div><div class="stat-valor" id="statPuestos">—</div><div class="stat-sub">destinos del turno</div></div>
+    <div class="stat-card"><div class="stat-label">Turno activo</div><div class="stat-valor" style="font-size:1.5rem;" id="statTurno">—</div></div>
+  </div>
+  <div class="btn-row">
+    <input type="date" id="despFecha" style="padding:0.5rem 0.9rem;border:2px solid var(--vc);border-radius:10px;font-size:0.9rem;">
+    <button class="btn btn-primary" id="btnProcesarDesp" onclick="cargarDespachos()" disabled>⚙️ Procesar</button>
+    <button class="btn btn-secondary" id="btnDespPDF" onclick="pdfDespachos()" disabled>📄 Generar PDF</button>
+    <div class="search-desp">
+      <span class="s-icon">🔍</span>
+      <input type="text" id="searchDesp" placeholder="Buscar puesto..." oninput="buscarDesp(this.value)" autocomplete="off">
+      <button class="s-clear" id="searchDespClear" onclick="limpiarBusqueda()">✕</button>
+    </div>
+    <span class="search-count" id="searchCount"></span>
+  </div>
+  <div class="alert" id="despAlert"></div>
+  <div class="table-wrap">
+    <table>
+      <thead id="despThead"></thead>
+      <tbody id="despTbody"><tr><td colspan="8" class="empty-state">Selecciona un turno y presiona "Procesar".</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ INFORME ═══ -->
+<div id="viewInforme" class="view-detail">
+  <button class="back-btn" onclick="showDashboard()">← Volver al Dashboard</button>
+  <h2 style="color:var(--vp);margin-bottom:0.3rem;">📊 Informe Laboral</h2>
+  <p style="color:var(--gris);font-size:0.84rem;margin-bottom:1.5rem;">
+    Los datos se autocompletan desde la base de datos. Ajusta si es necesario y genera el PDF.
+  </p>
+  <div class="incluir-bar">
+    <strong style="color:var(--vp);">Incluir en el informe:</strong>
+    <label class="check-label"><input type="checkbox" id="inclInv" checked> 📦 Inventario</label>
+    <label class="check-label"><input type="checkbox" id="inclCavas" checked> 🏠 Cavas</label>
+    <label class="check-label"><input type="checkbox" id="inclPerch" checked> 🛒 Percheros</label>
+    <button class="btn btn-secondary" style="margin-left:auto;" onclick="autocompletarInforme()">🔄 Autocompletar desde BD</button>
+    <button class="btn btn-primary" onclick="pdfInforme()">📄 Generar PDF</button>
+  </div>
+  <div class="tabs-bar">
+    <button class="tab-btn active" onclick="switchTab('tabInv',this)">📦 Inventario Frío</button>
+    <button class="tab-btn" onclick="switchTab('tabCavas',this)">🏠 Ocupación Cavas</button>
+    <button class="tab-btn" onclick="switchTab('tabPerch',this)">🛒 Carros Percheros</button>
+  </div>
+  <div class="alert" id="infAlert"></div>
+
+  <!-- TAB INVENTARIO -->
+  <div id="tabInv" class="tab-panel active">
+    <div class="inf-section">
+      <div class="inf-section-title">📅 Datos generales</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+        <div class="inf-field"><div class="inf-label">Fecha del informe</div><input type="text" id="infFecha" class="inf-input" placeholder="dd/mm/aaaa"></div>
+        <div class="inf-field"><div class="inf-label">Juegos Completos</div><input type="number" id="infCompletos" class="inf-input" placeholder="0" min="0"></div>
+        <div class="inf-field"><div class="inf-label">Juegos Incompletos</div><input type="number" id="infIncompletos" class="inf-input inv-rojo" placeholder="0" min="0"></div>
+      </div>
+    </div>
+    <div class="inf-section">
+      <div class="inf-section-title">⚠️ Novedades por Código</div>
+      <div class="add-nov-row">
+        <input type="text" id="novCod" class="inf-input" placeholder="Código" style="max-width:150px;">
+        <input type="text" id="novDesc" class="inf-input" placeholder="Descripción / Detalle">
+        <button class="btn btn-primary" onclick="addNov()" style="white-space:nowrap;">+ Agregar</button>
+      </div>
+      <div id="novList"><p style="color:var(--gris);font-size:0.9rem;">Sin novedades.</p></div>
+    </div>
+  </div>
+
+  <!-- TAB CAVAS -->
+  <div id="tabCavas" class="tab-panel">
+    <div class="inf-section">
+      <div class="inf-section-title" style="justify-content:center;text-align:center;">🐄 Beneficio del día</div>
+      <div class="beneficio-wrap">
+        <input type="number" id="infBeneficio" class="beneficio-input" placeholder="0" min="0">
+        <div style="color:var(--gris);font-size:0.85rem;margin-top:0.5rem;">animales beneficiados</div>
+      </div>
+    </div>
+    <div class="inf-section">
+      <div class="inf-section-title">🏠 Ocupación de Cavas (desde BD)</div>
+      <div class="table-wrap" style="margin-top:0;">
+        <table class="cava-table">
+          <thead><tr><th>CAVA</th><th>PRODUCTOS</th><th>CAPACIDAD</th><th>OCUPACIÓN</th></tr></thead>
+          <tbody id="cavaTableBody"><tr><td colspan="4" class="empty-state">Autocompletar para ver datos.</td></tr></tbody>
+          <tfoot id="cavaTfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB PERCHEROS -->
+  <div id="tabPerch" class="tab-panel">
+    <div class="inf-section">
+      <div class="inf-section-title">🛒 Distribución por Tipo (desde BD)</div>
+      <div class="perc-stats" id="percStats"></div>
+      <div class="table-wrap" style="margin-top:0;">
+        <table class="perc-table">
+          <thead><tr><th>Tipo de Producto</th><th>Cantidad</th></tr></thead>
+          <tbody id="percTableBody"><tr><td colspan="2" class="empty-state">Autocompletar para ver datos.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="inf-section">
+      <div class="inf-section-title">🛒 Carros Percheros (ajuste manual)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+        <div class="inf-field"><div class="inf-label">Stock percheros</div><input type="number" id="infStock" class="inf-input" value="100"></div>
+        <div class="inf-field"><div class="inf-label">Dañados</div><input type="number" id="infDanados" class="inf-input" value="0"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const API = '';
+let S = {
+  despachos: [], decomisos: [], turnoSel: '',
+  informe: { fecha:'', completos:0, incompletos:0, beneficio:0, stock:100, danados:0, novedades:[], cavas:[], tipos:[] }
+};
+
+// ── UTILIDADES ──
+const hoy = () => new Date().toISOString().split('T')[0];
+const fmtDate = iso => iso ? iso.split('T')[0].split('-').reverse().join('/') : '—';
+const spin = m => { document.getElementById('spinnerOverlay').classList.add('show'); document.getElementById('spinnerMsg').textContent = m || 'Consultando base de datos...'; };
+const unspin = () => document.getElementById('spinnerOverlay').classList.remove('show');
+const showAlert = (id, cls, msg) => { const el=document.getElementById(id); el.className='alert show alert-'+cls; el.innerHTML=msg; };
+const hideAlert = id => document.getElementById(id).classList.remove('show');
+async function apiFetch(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// ── INIT ──
+['dashFecha','decFecha','despFecha'].forEach(id => { const el=document.getElementById(id); if(el) el.value=hoy(); });
+document.getElementById('fechaActual').textContent = fmtDate(hoy());
+try { const sv=localStorage.getItem('colbeef_inf'); if(sv) S.informe=Object.assign(S.informe,JSON.parse(sv)); } catch{}
+
+// Auto-sugerir turno del día
+const TURNO_DIA = ['DxL','LxM','MxM','MxJ','JxV','VxS','SxD'];
+const turnoSugerido = TURNO_DIA[new Date().getDay()];
+document.querySelectorAll('.turno-btn').forEach(b => {
+  if(b.dataset.turno === turnoSugerido) b.classList.add('sugerido');
+});
+
+// ── CONEXIÓN ──
+async function ping() {
+  try {
+    const r = await apiFetch('/api/ping');
+    document.getElementById('connDot').classList.toggle('ok', r.ok);
+    document.getElementById('connTxt').textContent = r.ok ? 'BD: '+r.db : 'Sin conexión';
+  } catch { document.getElementById('connTxt').textContent = 'Sin conexión'; }
+}
+ping(); setInterval(ping, 30000);
+
+// ── NAVEGACIÓN ──
+function showDashboard() {
+  document.querySelectorAll('.view-detail').forEach(v => v.classList.remove('active'));
+  document.getElementById('viewDashboard').style.display = '';
+}
+function showDecomisos() { navTo('viewDecomisos'); }
+function showDespachos() { navTo('viewDespachos'); }
+function showInforme()   { navTo('viewInforme'); }
+function navTo(id) {
+  document.getElementById('viewDashboard').style.display = 'none';
+  document.querySelectorAll('.view-detail').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function switchTab(id, btn) {
+  btn.closest('.view-detail').querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.closest('.view-detail').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+function cerrarModal() { document.getElementById('modalPuesto').classList.remove('show'); }
+
+// ── DASHBOARD ──
+async function cargarDashboard() {
+  const fecha = document.getElementById('dashFecha').value || hoy();
+  spin('Cargando panel...');
+  try {
+    const d = await apiFetch('/api/dashboard?fecha='+fecha);
+    document.getElementById('dashJuegos').textContent    = d.juegos_total ?? '—';
+    document.getElementById('dashDecomisos').textContent = d.decomisos ?? '—';
+    document.getElementById('dashCrudas').textContent    = d.crudas ?? '—';
+    document.getElementById('dashPartes').textContent    = d.partes_total ?? '—';
+    document.getElementById('dashDespachos').textContent = S.despachos.length || '—';
+    document.getElementById('dashDespTurno').textContent = S.turnoSel ? 'Turno: '+S.turnoSel : 'Sin procesar';
+    const ahora = new Date();
+    document.getElementById('dashUltimaHora').textContent = String(ahora.getHours()).padStart(2,'0')+':'+String(ahora.getMinutes()).padStart(2,'0');
+    document.getElementById('dashUltimaFecha').textContent = fmtDate(hoy());
+    const tipos = d.por_tipo || [];
+    const tot   = d.partes_total || 1;
+    const max   = tipos.reduce((m,t)=>Math.max(m,t.cantidad),0);
+    const pct   = Math.round((max/tot)*100);
+    document.getElementById('progresoBarra').style.width = pct+'%';
+    document.getElementById('progresoPorcentaje').textContent = pct+'%';
+  } catch(e) { console.error(e); }
+  finally { unspin(); }
+}
+cargarDashboard();
+
+// ── DECOMISOS ──
+async function cargarDecomisos() {
+  const fecha = document.getElementById('decFecha').value || hoy();
+  spin('Consultando decomisos...');
+  try {
+    const r = await apiFetch('/api/decomisos?fecha='+fecha);
+    S.decomisos = r.data || [];
+    const tbody = document.getElementById('tablaDecomisos');
+    if (!S.decomisos.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Sin decomisos para esta fecha.</td></tr>';
+      document.getElementById('decMetrics').style.display = 'none';
+      document.getElementById('btnDecPDF').disabled = true;
+      showAlert('decAlert','warn','ℹ️ No hay decomisos registrados para ' + fmtDate(fecha));
+      return;
+    }
+    tbody.innerHTML = S.decomisos.map((d,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td style="font-family:monospace;font-size:0.8rem;">${d.codigo_producto||'—'}</td>
+        <td><strong>${d.producto||'—'}</strong></td>
+        <td style="font-size:0.82rem;">${d.puesto_destino||d.identificacion||'—'}</td>
+        <td style="font-size:0.82rem;color:#dc2626;">${d.causa_enfermedad||d.observacion||'—'}</td>
+        <td class="num">${d.peso_kg!=null?Number(d.peso_kg).toFixed(2):'—'}</td>
+        <td style="font-size:0.8rem;">${d.hora||'—'}</td>
+        <td style="font-size:0.8rem;">${d.responsable||'—'}</td>
+      </tr>`).join('');
+    const por = {};
+    S.decomisos.forEach(d => { por[d.producto]=(por[d.producto]||0)+1; });
+    const metricsEl = document.getElementById('decMetrics');
+    metricsEl.innerHTML = Object.keys(por).sort().map(k=>
+      `<div style="background:var(--fondo);border-radius:12px;padding:1rem;border:1px solid rgba(116,198,157,0.25);text-align:center;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,#dc2626,#f87171);"></div>
+        <div style="font-size:0.72rem;text-transform:uppercase;color:var(--gris);margin-bottom:0.3rem;">${k}</div>
+        <div style="font-size:2rem;font-weight:800;color:#dc2626;">${por[k]}</div>
+      </div>`
+    ).join('');
+    metricsEl.style.display = 'grid';
+    document.getElementById('btnDecPDF').disabled = false;
+    showAlert('decAlert','success','✅ '+S.decomisos.length+' decomisos encontrados para '+fmtDate(fecha));
+  } catch(e) { showAlert('decAlert','error','❌ Error: '+e.message); }
+  finally { unspin(); }
+}
+
+// ── DESPACHOS ──
+let turnoActivo = '';
+function selTurno(t, btn) {
+  turnoActivo = t;
+  document.querySelectorAll('.turno-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('despTurnoBadge').textContent = t;
+  document.getElementById('btnProcesarDesp').disabled = false;
+  document.getElementById('statTurno').textContent = t;
+}
+
+async function cargarDespachos() {
+  if (!turnoActivo) { showAlert('despAlert','warn','Selecciona un turno primero.'); return; }
+  const fecha = document.getElementById('despFecha').value || hoy();
+  spin('Consultando despachos turno ' + turnoActivo + '...');
+  try {
+    const r = await apiFetch('/api/despachos?fecha='+fecha+'&turno='+turnoActivo);
+    S.despachos = r.data || [];
+    S.turnoSel  = turnoActivo;
+    const tot   = r.totales || {};
+    const tbody = document.getElementById('despTbody');
+    if (!S.despachos.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Sin datos para este turno y fecha.</td></tr>';
+      document.getElementById('despStats').style.display = 'none';
+      document.getElementById('btnDespPDF').disabled = true;
+      showAlert('despAlert','warn','ℹ️ Sin datos para turno '+turnoActivo+' en '+fmtDate(fecha));
+      return;
+    }
+    // Encabezados
+    document.getElementById('despThead').innerHTML = `<tr>
+      <th>Puesto / Destino</th>
+      <th class="num">V. Rojas</th>
+      <th class="num">V. Blancas</th>
+      <th class="num">Cabeza</th>
+      <th class="num">Patas y Manos</th>
+      <th class="num">Juegos</th>
+      <th class="num">Turno</th>
+      <th class="num">Crudas</th>
+    </tr>`;
+    // Filas
+    tbody.innerHTML = S.despachos.map(p => {
+      const crudaCell = p.crudas > 0
+        ? `<td class="num cruda-cell"><span>${p.crudas}</span></td>`
+        : `<td class="num">—</td>`;
+      return `<tr class="clickable" ondblclick="verPuesto('${encodeURIComponent(p.destino)}')">
+        <td style="font-size:0.83rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.destino}">${p.destino}</td>
+        <td class="num" style="color:#dc2626;font-weight:700;">${p.vr||'—'}</td>
+        <td class="num" style="color:#2563eb;font-weight:700;">${p.vb||'—'}</td>
+        <td class="num">${p.cabeza||'—'}</td>
+        <td class="num">${p.pm||'—'}</td>
+        <td class="num" style="font-weight:800;color:var(--vp);font-size:1rem;">${p.juegos||0}</td>
+        <td class="num" style="font-size:0.8rem;color:var(--gris);">${turnoActivo}</td>
+        ${crudaCell}
+      </tr>`;
+    }).join('') +
+    `<tr class="total-row">
+      <td>TOTAL — ${S.despachos.length} puestos</td>
+      <td class="num" style="color:#dc2626;">${tot.vr||0}</td>
+      <td class="num" style="color:#2563eb;">${tot.vb||0}</td>
+      <td class="num">${tot.cabeza||0}</td>
+      <td class="num">${tot.pm||0}</td>
+      <td class="num" style="font-size:1.1rem;color:var(--vp);">${tot.juegos||0}</td>
+      <td class="num"></td>
+      <td class="num">${tot.crudas||0}</td>
+    </tr>`;
+    // Stats
+    document.getElementById('statJuegos').textContent  = tot.juegos||0;
+    document.getElementById('statVR').textContent      = tot.vr||0;
+    document.getElementById('statVB').textContent      = tot.vb||0;
+    document.getElementById('statCab').textContent     = tot.cabeza||0;
+    document.getElementById('statPM').textContent      = tot.pm||0;
+    document.getElementById('statCrudas').textContent  = tot.crudas||0;
+    document.getElementById('statPuestos').textContent = tot.puestos||0;
+    document.getElementById('despStats').style.display = 'grid';
+    document.getElementById('btnDespPDF').disabled = false;
+    showAlert('despAlert','success','✅ '+tot.puestos+' puestos · '+tot.juegos+' juegos · turno '+turnoActivo);
+    document.getElementById('dashDespachos').textContent = tot.juegos||0;
+    document.getElementById('dashDespTurno').textContent = 'Turno: '+turnoActivo;
+  } catch(e) { showAlert('despAlert','error','❌ Error: '+e.message); }
+  finally { unspin(); }
+}
+
+function verPuesto(enc) {
+  const nombre = decodeURIComponent(enc);
+  const p = S.despachos.find(d => d.destino === nombre);
+  if (!p) return;
+  document.getElementById('modalPuestoTitulo').textContent = nombre;
+  document.getElementById('modalPuestoContenido').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin-bottom:1rem;">
+      <div style="background:var(--fondo);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--vc);">
+        <div style="font-size:0.72rem;text-transform:uppercase;color:var(--gris);">V. Rojas</div>
+        <div style="font-size:2rem;font-weight:800;color:#dc2626;">${p.vr||0}</div>
+      </div>
+      <div style="background:var(--fondo);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--vc);">
+        <div style="font-size:0.72rem;text-transform:uppercase;color:var(--gris);">V. Blancas</div>
+        <div style="font-size:2rem;font-weight:800;color:#2563eb;">${p.vb||0}</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:10px;padding:1rem;text-align:center;border:2px solid var(--vp);">
+        <div style="font-size:0.72rem;text-transform:uppercase;color:var(--gris);">Juegos</div>
+        <div style="font-size:2rem;font-weight:800;color:var(--vp);">${p.juegos||0}</div>
+      </div>
+      <div style="background:var(--fondo);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--vc);">
+        <div style="font-size:0.72rem;text-transform:uppercase;color:var(--gris);">Cabeza</div>
+        <div style="font-size:2rem;font-weight:800;">${p.cabeza||0}</div>
+      </div>
+      <div style="background:var(--fondo);border-radius:10px;padding:1rem;text-align:center;border:1px solid var(--vc);">
+        <div style="font-size:0.72rem;text-transform:uppercase;color:var(--gris);">Patas y Manos</div>
+        <div style="font-size:2rem;font-weight:800;">${p.pm||0}</div>
+      </div>
+      <div style="background:#fffbeb;border-radius:10px;padding:1rem;text-align:center;border:1px solid #fcd34d;">
+        <div style="font-size:0.72rem;text-transform:uppercase;color:#92400e;">Crudas</div>
+        <div style="font-size:2rem;font-weight:800;color:#d97706;">${p.crudas||0}</div>
+      </div>
+    </div>
+    ${p.crudas > 0 ? `
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:1rem;">
+      <strong style="font-size:0.85rem;color:#92400e;">⚠️ Códigos con cruda:</strong>
+      <div style="font-size:0.8rem;font-family:monospace;margin-top:0.5rem;color:#78350f;">${p.codigos_crudas||'—'}</div>
+    </div>` : ''}`;
+  document.getElementById('modalPuesto').classList.add('show');
+}
+
+// ── BUSCADOR ──
+function buscarDesp(q) {
+  const cl = document.getElementById('searchDespClear');
+  const ct = document.getElementById('searchCount');
+  cl.classList.toggle('show', q.length > 0);
+  let n = 0;
+  document.querySelectorAll('#despTbody tr:not(.total-row)').forEach(r => {
+    const txt = r.textContent.toLowerCase();
+    const match = !q || txt.includes(q.toLowerCase());
+    r.classList.toggle('hl-hidden', !match);
+    r.classList.toggle('hl-match', !!(q && match));
+    if (match) n++;
+  });
+  ct.textContent = q ? n+' resultados' : '';
+}
+function limpiarBusqueda() {
+  document.getElementById('searchDesp').value = '';
+  buscarDesp('');
+}
+
+// ── INFORME ──
+async function autocompletarInforme() {
+  spin('Cargando datos del informe...');
+  try {
+    const d = await apiFetch('/api/dashboard?fecha='+hoy());
+    S.informe.fecha     = fmtDate(hoy());
+    S.informe.completos = d.juegos_total || 0;
+    S.informe.beneficio = d.juegos_total || 0;
+    S.informe.cavas     = d.cavas || [];
+    S.informe.tipos     = d.por_tipo || [];
+    renderInforme();
+    showAlert('infAlert','success','✅ Datos autocompletados desde la base de datos.');
+  } catch(e) { showAlert('infAlert','error','❌ Error: '+e.message); }
+  finally { unspin(); }
+}
+
+function renderInforme() {
+  const inf = S.informe;
+  document.getElementById('infFecha').value      = inf.fecha || fmtDate(hoy());
+  document.getElementById('infCompletos').value  = inf.completos;
+  document.getElementById('infIncompletos').value= inf.incompletos;
+  document.getElementById('infBeneficio').value  = inf.beneficio;
+  document.getElementById('infStock').value      = inf.stock;
+  document.getElementById('infDanados').value    = inf.danados;
+  renderNov();
+  // Cavas
+  const cavas = inf.cavas || [];
+  let totProd=0, totCap=0;
+  document.getElementById('cavaTableBody').innerHTML = cavas.length
+    ? cavas.map((c,i)=>{
+        const cap=c.capacidad_total||0, prod=c.productos||0;
+        const pct=cap>0?Math.round((prod/cap)*100):0;
+        totProd+=prod; totCap+=cap;
+        const col=pct>=80?'#dc2626':pct>=60?'#d97706':'var(--vp)';
+        const bg=pct>=80?'#fee2e2':pct>=60?'#fef3c7':'#d1fae5';
+        return `<tr style="background:${i%2?'#fff':'var(--fondo)'}">
+          <td>${c.cava}</td>
+          <td>${prod}</td>
+          <td>${cap||'—'}</td>
+          <td><span class="pct-chip" style="background:${bg};color:${col};">${cap>0?pct+'%':'—'}</span></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="4" class="empty-state">Autocompletar para ver datos.</td></tr>';
+  if (cavas.length) {
+    document.getElementById('cavaTfoot').innerHTML =
+      `<tr class="total-cava"><td>TOTAL</td><td>${totProd}</td><td>${totCap||'—'}</td><td></td></tr>`;
+  }
+  // Tipos
+  const tipos = inf.tipos || [];
+  document.getElementById('percTableBody').innerHTML = tipos.length
+    ? tipos.map((t,i)=>`<tr style="background:${i%2?'#fff':'var(--fondo)'}"><td>${t.tipo}</td><td>${t.cantidad}</td></tr>`).join('')
+    : '<tr><td colspan="2" class="empty-state">Autocompletar para ver datos.</td></tr>';
+  // Stats percheros
+  const colores = ['azul','rojo','naranja','verde','azul','rojo'];
+  document.getElementById('percStats').innerHTML = tipos.slice(0,6).map((t,i)=>`
+    <div class="perc-stat ${colores[i]}">
+      <div class="perc-stat-label">${t.tipo}</div>
+      <div class="perc-stat-val ${colores[i]}">${t.cantidad}</div>
+    </div>`).join('');
+}
+
+function renderNov() {
+  const novs = S.informe.novedades;
+  document.getElementById('novList').innerHTML = novs.length
+    ? novs.map((n,i)=>`<div class="novedad-chip">
+        <span><strong>${n.cod}</strong>: ${n.desc}</span>
+        <button class="novedad-del" onclick="delNov(${i})">✕</button>
+      </div>`).join('')
+    : '<p style="color:var(--gris);font-size:0.9rem;">Sin novedades.</p>';
+}
+function addNov() {
+  const cod=document.getElementById('novCod').value.trim(), desc=document.getElementById('novDesc').value.trim();
+  if (!cod||!desc) return;
+  S.informe.novedades.push({cod,desc});
+  document.getElementById('novCod').value=''; document.getElementById('novDesc').value='';
+  renderNov();
+}
+function delNov(i){ S.informe.novedades.splice(i,1); renderNov(); }
+
+// ── PDFs ──
+function pdfDecomisos() {
+  const rows = S.decomisos; if(!rows.length) return;
+  const fecha = document.getElementById('decFecha').value || hoy();
+  const por={}; rows.forEach(d=>{por[d.producto]=(por[d.producto]||0)+1;});
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<style>body{font-family:Arial,sans-serif;padding:.5cm;}@page{size:A4 landscape;margin:.6cm;}
+h2{color:#259c39;font-size:15pt;text-align:center;margin-bottom:4px;}
+.sub{text-align:center;color:#6b7280;font-size:8pt;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;font-size:8.5pt;border:1px solid #d1d5db;}
+th{background:#259c39;color:#fff;padding:5px 8px;text-align:left;}
+tr:nth-child(even){background:#f0faf3;}td{padding:4px 8px;border-bottom:1px solid #f3f4f6;}
+.res{display:inline-block;background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:2px 10px;font-size:8pt;margin:2px;color:#166534;font-weight:bold;}
+.firma{margin-top:25px;text-align:center;}
+.footer{text-align:center;font-size:7pt;color:#9ca3af;margin-top:15px;}</style></head><body>
+<h2>REPORTE DE DECOMISOS DE SUBPRODUCTOS</h2>
+<p class="sub">Fecha: ${fmtDate(fecha)} · Total: ${rows.length} registros · Generado: ${fmtDate(hoy())}</p>
+<table><thead><tr><th>#</th><th>Código</th><th>Producto</th><th>Puesto/Etiqueta</th><th>Causa/Enfermedad</th><th>Peso (kg)</th><th>Hora</th><th>Responsable</th></tr></thead>
+<tbody>${rows.map((d,i)=>`<tr style="background:${i%2?'#fff':'#f0faf3'}">
+  <td>${i+1}</td><td style="font-family:monospace;font-size:7.5pt;">${d.codigo_producto||'—'}</td>
+  <td><b>${d.producto||'—'}</b></td><td style="font-size:7.5pt;">${d.puesto_destino||d.identificacion||'—'}</td>
+  <td style="color:#dc2626;font-size:7.5pt;">${d.causa_enfermedad||d.observacion||'—'}</td>
+  <td style="text-align:center;">${d.peso_kg!=null?Number(d.peso_kg).toFixed(2):'—'}</td>
+  <td style="font-size:7.5pt;">${d.hora||'—'}</td><td style="font-size:7.5pt;">${d.responsable||'—'}</td>
+</tr>`).join('')}</tbody></table>
+<br><div>${Object.keys(por).sort().map(k=>`<span class="res">${k}: ${por[k]}</span>`).join('')}</div>
+<div class="firma"><p>___________________________</p><p><b>Sergio Anaya</b></p><p style="font-style:italic;color:#6b7280;">Gestor Vísceras</p></div>
+<p class="footer">Gestor de Vísceras Colbeef · ${fmtDate(hoy())}</p>
+</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
+}
+
+function pdfDespachos() {
+  const rows = S.despachos; if(!rows.length) return;
+  const fecha = document.getElementById('despFecha').value || hoy();
+  const tot = {
+    vr:rows.reduce((s,r)=>s+(r.vr||0),0), vb:rows.reduce((s,r)=>s+(r.vb||0),0),
+    cabeza:rows.reduce((s,r)=>s+(r.cabeza||0),0), pm:rows.reduce((s,r)=>s+(r.pm||0),0),
+    juegos:rows.reduce((s,r)=>s+(r.juegos||0),0), crudas:rows.reduce((s,r)=>s+(r.crudas||0),0)
+  };
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<style>body{font-family:Arial,sans-serif;padding:.5cm;}@page{size:A4 landscape;margin:.6cm;}
+h2{color:#259c39;font-size:15pt;text-align:center;margin-bottom:4px;}
+.sub{text-align:center;color:#6b7280;font-size:8pt;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;font-size:8.5pt;border:1px solid #d1d5db;}
+th{background:#259c39;color:#fff;padding:5px 8px;text-align:center;}th:first-child{text-align:left;}
+tr:nth-child(even){background:#f0faf3;}td{padding:4px 8px;border-bottom:1px solid #f3f4f6;text-align:center;}td:first-child{text-align:left;font-size:7.5pt;}
+tfoot tr{background:#e8f5e9;font-weight:bold;border-top:2px solid #259c39;}
+.footer{text-align:center;font-size:7pt;color:#9ca3af;margin-top:15px;}
+.firma{margin-top:25px;text-align:center;}</style></head><body>
+<h2>DESPACHOS POR PUESTO · TURNO: ${turnoActivo}</h2>
+<p class="sub">Fecha: ${fmtDate(fecha)} · ${rows.length} puestos · Generado: ${fmtDate(hoy())}</p>
+<table>
+<thead><tr><th>Destino / Puesto</th><th>V. Rojas</th><th>V. Blancas</th><th>Cabeza</th><th>Patas y Manos</th><th>Juegos</th><th>Turno</th><th>Crudas</th></tr></thead>
+<tbody>${rows.map((p,i)=>`<tr style="background:${i%2?'#fff':'#f0faf3'}">
+  <td>${p.destino}</td>
+  <td style="color:#dc2626;font-weight:bold;">${p.vr||'—'}</td>
+  <td style="color:#2563eb;font-weight:bold;">${p.vb||'—'}</td>
+  <td>${p.cabeza||'—'}</td><td>${p.pm||'—'}</td>
+  <td style="font-weight:800;color:#259c39;font-size:10pt;">${p.juegos||0}</td>
+  <td style="font-size:7.5pt;color:#6b7280;">${turnoActivo}</td>
+  <td>${p.crudas>0?`<b style="color:#d97706;">${p.crudas}</b>`:'—'}</td>
+</tr>`).join('')}</tbody>
+<tfoot><tr><td><b>TOTAL (${rows.length} puestos)</b></td>
+  <td><b style="color:#dc2626;">${tot.vr}</b></td><td><b style="color:#2563eb;">${tot.vb}</b></td>
+  <td><b>${tot.cabeza}</b></td><td><b>${tot.pm}</b></td>
+  <td><b style="color:#259c39;font-size:11pt;">${tot.juegos}</b></td><td></td>
+  <td>${tot.crudas>0?`<b style="color:#d97706;">${tot.crudas}</b>`:'—'}</td>
+</tr></tfoot></table>
+<div class="firma"><p>___________________________</p><p><b>Sergio Anaya</b></p><p style="font-style:italic;color:#6b7280;">Gestor Vísceras</p></div>
+<p class="footer">Gestor de Vísceras Colbeef · ${fmtDate(hoy())}</p>
+</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
+}
+
+function pdfInforme() {
+  const inf = S.informe;
+  const disponibles = Math.max(0, inf.stock - inf.danados);
+  const novHtml = inf.novedades.length ? inf.novedades.map(n=>`<li><b>${n.cod}</b>: ${n.desc}</li>`).join('') : '<li>Sin novedades.</li>';
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<style>body{font-family:Arial,sans-serif;padding:.5cm;}@page{size:A4 landscape;margin:.6cm;}
+h2{color:#259c39;font-size:15pt;text-align:center;margin-bottom:4px;}
+.sub{text-align:center;color:#6b7280;font-size:8pt;margin-bottom:12px;}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.kpi{flex:1;min-width:90px;background:#f0faf3;border:1px solid #86efac;border-radius:8px;padding:8px 10px;}
+.kl{font-size:7.5pt;color:#6b7280;}.kv{font-size:18pt;font-weight:bold;color:#259c39;}
+table{width:100%;border-collapse:collapse;font-size:8.5pt;border:1px solid #d1d5db;margin-bottom:10px;}
+th{background:#259c39;color:#fff;padding:5px 8px;}tr:nth-child(even){background:#f0faf3;}
+td{padding:4px 8px;border-bottom:1px solid #f3f4f6;}
+tfoot tr{background:#e8f5e9;font-weight:bold;border-top:2px solid #259c39;}
+h3{color:#259c39;font-size:9pt;margin:8px 0 4px;border-bottom:1px solid #e5e7eb;padding-bottom:2px;}
+.firma{margin-top:20px;text-align:center;}
+.footer{text-align:center;font-size:7pt;color:#9ca3af;margin-top:12px;}</style></head><body>
+<h2>INFORME LABORAL DIARIO — GESTOR DE VÍSCERAS</h2>
+<p class="sub">Fecha: ${inf.fecha} · Generado: ${fmtDate(hoy())}</p>
+<div class="kpis">
+  <div class="kpi"><div class="kl">Completos</div><div class="kv">${inf.completos}</div></div>
+  <div class="kpi"><div class="kl">Incompletos</div><div class="kv" style="color:#d97706;">${inf.incompletos}</div></div>
+  <div class="kpi"><div class="kl">Beneficio día</div><div class="kv">${inf.beneficio}</div></div>
+  <div class="kpi"><div class="kl">Stock</div><div class="kv">${inf.stock}</div></div>
+  <div class="kpi"><div class="kl">Dañados</div><div class="kv" style="color:#dc2626;">${inf.danados}</div></div>
+  <div class="kpi"><div class="kl">Disponibles</div><div class="kv" style="color:#2563eb;">${disponibles}</div></div>
+</div>
+<h3>Estado de Cavas</h3>
+<table><thead><tr><th style="text-align:left;">Cava</th><th style="text-align:center;">Productos</th><th style="text-align:center;">Capacidad</th><th style="text-align:center;">Ocupación</th></tr></thead>
+<tbody>${(inf.cavas||[]).map((c,i)=>{const cap=c.capacidad_total||0,pct=cap>0?Math.round((c.productos/cap)*100):0;return `<tr style="background:${i%2?'#fff':'#f0faf3'}"><td>${c.cava}</td><td style="text-align:center;"><b>${c.productos}</b></td><td style="text-align:center;">${cap||'—'}</td><td style="text-align:center;font-weight:bold;color:${pct>=80?'#dc2626':pct>=60?'#d97706':'#259c39'}">${cap>0?pct+'%':'—'}</td></tr>`;}).join('')||'<tr><td colspan="4" style="text-align:center;">Sin datos</td></tr>'}</tbody></table>
+<h3>Tipos de Producto</h3>
+<table><thead><tr><th style="text-align:left;">Tipo</th><th style="text-align:center;">Cantidad</th></tr></thead>
+<tbody>${(inf.tipos||[]).map((t,i)=>`<tr style="background:${i%2?'#fff':'#f0faf3'}"><td>${t.tipo}</td><td style="text-align:center;"><b>${t.cantidad}</b></td></tr>`).join('')||'<tr><td colspan="2" style="text-align:center;">Sin datos</td></tr>'}</tbody></table>
+<h3>Novedades</h3><ul style="font-size:8.5pt;padding-left:16px;">${novHtml}</ul>
+<div class="firma"><p>___________________________</p><p><b>Sergio Anaya</b></p><p style="font-style:italic;color:#6b7280;">Gestor Vísceras</p></div>
+<p class="footer">Gestor de Vísceras Colbeef · ${fmtDate(hoy())}</p>
+</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+logs/*.log
+!logs/.gitkeep
+local_data/
+.DS_Store
+Thumbs.db
